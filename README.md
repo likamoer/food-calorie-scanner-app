@@ -1,16 +1,10 @@
-# food_caluli
+# 算了么
 
-A new Flutter project.
+算了么App的容器盒子，仅仅是通过Webview的形式提供了一个盒子。
 
-## Getting Started
+具体的h5内容请参考：【https://github.com/likamoer/food-calorie-scanner】
 
-This project is a starting point for a Flutter application.
+# 分支管理
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- master 分支：主线分支，包含最新的稳定版本代码。
+- dev 分支：开发分支，用于开发新功能和修复 bug。
