@@ -38,6 +38,7 @@ dependencies:
   # Add webview_flutter for H5 content support
   webview_flutter: ^4.8.0
   camera: ^0.11.2+1
+  image_picker: ^1.2.0
 
 dev_dependencies:
   flutter_test:

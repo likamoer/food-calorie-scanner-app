@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'Pages/CameraPage/index.dart';
 
@@ -37,9 +38,20 @@ class _WebViewPageState extends State<WebViewPage> {
   bool _isLoading = true; // 页面是否加载完成
   bool _isStartSafeArea = false; // 是否开启安全区域
 
+  // 隐藏手机的导航栏
+  hideStatusBar() {
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.immersive, // 沉浸式模式：隐藏状态栏和导航栏（滑动屏幕边缘可临时显示）
+      overlays: [SystemUiOverlay.bottom], // 仅隐藏状态栏，保留底部导航栏
+    );
+  }
+
   @override
   void initState() {
     super.initState();
+
+    // 隐藏导航栏
+    hideStatusBar();
     
     // 初始化WebViewController
     _controller = WebViewController()

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'dart:io';
 import './fixedCameraCorner.dart';
+import '../../utils/index.dart';
 
 // 相机页面组件
 class CameraPage extends StatefulWidget {
@@ -21,7 +23,7 @@ class _CameraPageState extends State<CameraPage> {
   @override
   void initState() {
     super.initState();
-    _initCamera(); // 初始化摄像头
+    // initCamera(); // 初始化摄像头
   }
 
   // 初始化摄像头失败时的提示，同时关闭当前路由
@@ -37,8 +39,40 @@ class _CameraPageState extends State<CameraPage> {
     });
   }
 
+  // 从相册上传图片
+  uploadImageFromAlbum(BuildContext contextValue) async {
+    final picker = ImagePicker();
+    // 从相册选择图片
+    XFile? pickedImage = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedImage != null) {
+      // 1. 读取 XFile 的字节流（支持本地文件和临时文件）
+      final List<int> imageBytes = await pickedImage.readAsBytes();
+      // 2. 将字节流转换为Base64编码字符串
+      String base64Str = base64Encode(imageBytes);
+      print('Base64编码后的图片: $base64Str');
+      // 从路由参数中获取WebView控制器, 调用JavaScript方法，将Base64编码后的图片内容传递给H5
+      dynamic routeArguments = ModalRoute.of(contextValue)?.settings.arguments as Map<String, dynamic>?;
+
+      // 3. 获取图片文件格式
+      String imageFormat = getFileTypeByPath(pickedImage);
+      // 4. 拼接图片数据URL
+      String imageDataUrl = 'data:image/$imageFormat;base64,$base64Str';
+
+
+      await routeArguments?['webview']?.runJavaScript('''
+        window.receiveCameraBridgeMessage('$imageDataUrl');
+      ''');
+
+      // 关闭当前路由
+      Navigator.pop(contextValue);
+      return;
+    }
+    // 用户取消选择图片
+    print('上传的图片: $pickedImage');
+  }
+
   // 拍照逻辑
-  Future<void> takePicture(BuildContext contextValue) async {
+  Future<void> takeCameraPhoto(BuildContext contextValue) async {
     try {
       // 拍照
       final XFile picture = await _controller!.takePicture();
@@ -47,17 +81,16 @@ class _CameraPageState extends State<CameraPage> {
       final List<int> imageBytes = await imageFile.readAsBytes();
       // 将图片内容转换为Base64编码
       final String base64Image = base64Encode(imageBytes);
-
-      // 处理拍照后的图片（例如，上传到服务器）
-      print('拍照后的图片路径: ${picture.path}');
-      // 打印Base64编码后的图片内容
-      print('Base64编码后的图片内容: $base64Image');
+      // 3. 获取图片文件格式
+      String imageFormat = getFileTypeByPath(picture);
+      // 4. 拼接图片数据URL
+      String imageDataUrl = 'data:image/$imageFormat;base64,$base64Image';
 
       // 从路由参数中获取WebView控制器, 调用JavaScript方法，将Base64编码后的图片内容传递给H5
       dynamic routeArguments = ModalRoute.of(contextValue)?.settings.arguments as Map<String, dynamic>?;
 
       await routeArguments?['webview']?.runJavaScript('''
-        window.receiveCameraBridgeMessage('$base64Image');
+        window.receiveCameraBridgeMessage('$imageDataUrl');
       ''');
 
       // 关闭当前路由
@@ -70,7 +103,7 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   // 初始化摄像头
-  Future<void> _initCamera() async {
+  Future<void> initCamera() async {
     try {
       // 获取设备上的所有摄像头
       _cameras = await availableCameras();
@@ -105,7 +138,8 @@ class _CameraPageState extends State<CameraPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: (_controller == null || !_controller!.value.isInitialized)? Center(child: Text('正在准备相机...')) : Stack(
+      backgroundColor: Colors.teal,
+      body: (_controller == null || !_controller!.value.isInitialized) && false? Center(child: Text('正在准备相机...')) : Stack(
         children: [
           // 拍照界面
           Positioned(
@@ -115,7 +149,7 @@ class _CameraPageState extends State<CameraPage> {
             bottom: 200,
             child: Stack(
               children: [
-                CameraPreview(_controller!),
+                // CameraPreview(_controller!),
                 Align(
                   alignment: Alignment.center,
                   child: FixedCornerFocusFrame(
@@ -149,25 +183,65 @@ class _CameraPageState extends State<CameraPage> {
                     mainAxisSize: MainAxisSize.max,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // 拍照按钮
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black,
-                          border: Border.fromBorderSide(
-                            BorderSide(color: Colors.white, width: 2),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 50,
+                            height: 50,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black38,
+                            ),
+                            child: IconButton(icon: Icon(Icons.arrow_back, color: Colors.white), onPressed: () {
+                              Navigator.pop(context);
+                            }),
                           ),
-                        ),
-                        child: IconButton(
-                          icon: Icon(Icons.camera_alt_outlined, color: Colors.white, size: 40), 
-                          onPressed: () {
-                            // 拍照逻辑
-                            takePicture(context);
-                          }
-                        ),
-                      ),
+                          Container(width: 50),
+                          // 拍照按钮
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black,
+                              border: Border.fromBorderSide(
+                                BorderSide(color: Colors.white, width: 2),
+                              ),
+                            ),
+                            child: IconButton(
+                              icon: Icon(Icons.camera_alt_outlined, color: Colors.white, size: 40), 
+                              onPressed: () {
+                                // 拍照逻辑
+                                takeCameraPhoto(context);
+                              }
+                            ),
+                          ),
+                          Container(width: 50),
+                          // 上传图片icon
+                          Container(
+                            width: 50,
+                            height: 50,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black,
+                              border: Border.fromBorderSide(
+                                BorderSide(color: Colors.white, width: 2),
+                              ),
+                            ),
+                            child: IconButton(
+                              icon: Icon(
+                                Icons.add_photo_alternate_outlined, 
+                                color: Colors.white, 
+                              ), 
+                              onPressed: () {
+                                // 上传图片逻辑
+                                uploadImageFromAlbum(context);
+                              }
+                            ),
+                          ),
+                        ],
+                      )
                     ],
                   )
                 ),
