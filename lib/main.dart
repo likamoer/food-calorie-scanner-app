@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'Pages/CameraPage/index.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -12,7 +14,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '算了么',
-      home: const WebViewPage(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const WebViewPage(),
+        '/camera': (context) {
+          return CameraPage();
+        },
+      },
     );
   }
 }
@@ -36,6 +44,28 @@ class _WebViewPageState extends State<WebViewPage> {
     // 初始化WebViewController
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setOnJavaScriptAlertDialog(
+        (JavaScriptAlertDialogRequest request) {
+          // 处理JavaScript alert弹窗
+          return showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text('提示'),
+                content: Text(request.message),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('确定'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
@@ -70,17 +100,32 @@ class _WebViewPageState extends State<WebViewPage> {
             final uri = Uri.parse(curPageUrl);
             if (uri.fragment.isNotEmpty) {
               // 处理React-Router的路由变化
-              // 处理路由变化
               if (!_isStartSafeArea) {
                 setState(() {
                   _isStartSafeArea = true;
                 });
               }
             }
-          },
+          }
         ),
       )
-      ..loadRequest(Uri.parse('http://154.8.136.162/AiCalorie/'));
+      ..addJavaScriptChannel(
+        'cameraBridge',
+        onMessageReceived: (JavaScriptMessage message) {
+          // 处理从JavaScript发送的消息
+          print('收到消息: ${message.message}');
+          // 跳转到相机页面，并传递消息
+          Navigator.pushNamed(
+            context,
+            '/camera',
+            arguments: {
+              'h5SendFlutterMessage': message.message,
+              'webview': _controller,
+            },
+          );
+        },
+      )
+      ..loadRequest(Uri.parse('http://154.8.136.162/AiCalorie/?timestamp=${DateTime.now().millisecondsSinceEpoch}'));
   }
 
   @override
