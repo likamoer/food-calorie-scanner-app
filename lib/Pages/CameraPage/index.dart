@@ -23,7 +23,7 @@ class _CameraPageState extends State<CameraPage> {
   @override
   void initState() {
     super.initState();
-    // initCamera(); // 初始化摄像头
+    initCamera(); // 初始化摄像头
   }
 
   // 初始化摄像头失败时的提示，同时关闭当前路由
@@ -138,8 +138,7 @@ class _CameraPageState extends State<CameraPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.teal,
-      body: (_controller == null || !_controller!.value.isInitialized) && false? Center(child: Text('正在准备相机...')) : Stack(
+      body: (_controller == null || !_controller!.value.isInitialized)? Center(child: Text('正在准备相机...')) : Stack(
         children: [
           // 拍照界面
           Positioned(
@@ -149,7 +148,7 @@ class _CameraPageState extends State<CameraPage> {
             bottom: 200,
             child: Stack(
               children: [
-                // CameraPreview(_controller!),
+                CameraPreview(_controller!),
                 Align(
                   alignment: Alignment.center,
                   child: FixedCornerFocusFrame(
